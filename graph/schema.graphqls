@@ -1,0 +1,99 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+type ScraperAPI {
+    "Version of event scraper-api service"
+    version: String!
+}
+
+type ApiInfo {
+    "API Info of the ScraperAPI"
+    scraperAPI: ScraperAPI! @goField(forceResolver: true)
+    "Name of the API"
+    name: String!
+}
+
+type Link {
+    "ID of the link"
+    id: ID!
+    "name of anime"
+    name: String!
+    "animeid Link"
+    animeID: String!
+    "TheTVDB ID"
+    thetvdbID: String!
+    "season"
+    season: Int!
+}
+
+type TheTVDBEpisode {
+    "ID of the episode"
+    id: ID!
+    "Episode Title"
+    title: String!
+    "Episode Number"
+    episodeNumber: Int!
+    "Season Number"
+    seasonNumber: Int!
+    "Episode Link"
+    link: String!
+    "Episode Image"
+    image: String
+    "Episode Description"
+    description: String
+}
+
+type Query {
+    "Search thetvdb for anime"
+    searchTheTVDB(input: TheTVDBSearchInput): [TheTVDBAnime!]
+    "Saved Links"
+    getSavedLinks: [Link!]
+    "get episodes from thetvdb"
+    getEpisodesFromTheTVDB(thetvdbID: String!): [TheTVDBEpisode!]
+}
+
+type Mutation {
+    "Save link"
+    saveLink(input: SaveLinkInput): Link!
+}
+
+input SaveLinkInput {
+    "Animeid Link to save"
+    animeID: String!
+    "TheTVDB ID"
+    thetvdbID: String!
+    "season"
+    season: Int!
+    "Name of anime"
+    name: String!
+}
+
+input TheTVDBSearchInput {
+    "Search query"
+    query: String!
+}
+
+type TranslationTuple {
+    key: String
+    value: String
+}
+
+type TheTVDBAnime {
+    "ID of the anime"
+    id: ID!
+    "Anime title"
+    title: String!
+    "Anime Link"
+    link: String!
+    "Anime Poster"
+    image: String
+    "Anime Release Year"
+    year: String
+    "Translations"
+    translations: [TranslationTuple]
+    "studios"
+    studios: [String!]
+    "Genres"
+    genres: [String!]
+}

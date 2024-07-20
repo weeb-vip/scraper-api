@@ -1,0 +1,1 @@
+ALTER TABLE thetvdb_link ADD COLUMN season_number INTEGER NOT NULL DEFAULT 1;
