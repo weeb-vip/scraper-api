@@ -23,10 +23,10 @@ type LinkService interface {
 
 type Link struct {
 	repo     thetvdblink.TheTVDBLinkRepositoryImpl
-	producer producer.ProducerImpl[LinkProducerStruct]
+	producer producer.Producer[LinkProducerStruct]
 }
 
-func NewLinkService(repo thetvdblink.TheTVDBLinkRepositoryImpl, producer producer.ProducerImpl[LinkProducerStruct]) LinkService {
+func NewLinkService(repo thetvdblink.TheTVDBLinkRepositoryImpl, producer producer.Producer[LinkProducerStruct]) LinkService {
 	return &Link{repo: repo, producer: producer}
 }
 
