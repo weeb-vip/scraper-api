@@ -1,9 +1,11 @@
 package config
 
-import "github.com/jinzhu/configor"
+import (
+	"github.com/jinzhu/configor"
+)
 
 type Config struct {
-	AppConfig     AppConfig `env:"APPCONFIG"`
+	AppConfig     AppConfig `env:"APP_CONFIG"`
 	DBConfig      DBConfig
 	DataDogConfig DataDogConfig
 	TheTVDBConfig TheTVDBConfig `env:"THETVDB"`
