@@ -14,6 +14,10 @@ type LinkProducerStruct struct {
 	Season        int    `json:"season"`
 }
 
+type PayloadStruct struct {
+	Data LinkProducerStruct `json:"data"`
+}
+
 type LinkService interface {
 	FindAll(ctx context.Context) ([]*thetvdblink.TheTVDBLink, error)
 	FindById(ctx context.Context, id string) (*thetvdblink.TheTVDBLink, error)
@@ -60,11 +64,13 @@ func (l *Link) Sync(ctx context.Context, id string) error {
 		return err
 	}
 
-	jsonLink, err := json.Marshal(LinkProducerStruct{
-		Id:            link.ID,
-		AnimeID:       link.AnimeID,
-		TheTVDBLinkID: link.TheTVDBLinkID,
-		Season:        link.Season,
+	jsonLink, err := json.Marshal(PayloadStruct{
+		Data: LinkProducerStruct{
+			Id:            link.ID,
+			AnimeID:       link.AnimeID,
+			TheTVDBLinkID: link.TheTVDBLinkID,
+			Season:        link.Season,
+		},
 	})
 	// convert to bytes
 
