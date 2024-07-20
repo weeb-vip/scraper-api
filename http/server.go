@@ -19,7 +19,7 @@ func SetupServer(cfg config.Config) *chi.Mux {
 	router.Use(cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:8081", "http://localhost:3000"},
 		AllowCredentials: true,
-		Debug:            true,
+		Debug:            false,
 	}).Handler)
 
 	router.Handle("/ui/playground", playground.Handler("GraphQL playground", "/graphql"))
