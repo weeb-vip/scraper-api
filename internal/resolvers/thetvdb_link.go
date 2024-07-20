@@ -126,7 +126,7 @@ func GetSavedLinks(ctx context.Context, theTVDBService link_service.LinkService)
 	return theTVDBLinks, nil
 }
 
-func sync(ctx context.Context, theTVDBService link_service.LinkService, linkID string) (bool, error) {
+func SyncLink(ctx context.Context, theTVDBService link_service.LinkService, linkID string) (bool, error) {
 	err := theTVDBService.Sync(ctx, linkID)
 	if err != nil {
 		return false, err

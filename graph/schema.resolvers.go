@@ -40,7 +40,7 @@ func (r *queryResolver) GetEpisodesFromTheTvdb(ctx context.Context, thetvdbID st
 
 // SyncLink is the resolver for the syncLink field.
 func (r *queryResolver) SyncLink(ctx context.Context, linkID string) (bool, error) {
-	return resolvers.SyncLink(ctx, r.TheTVDBProcessor, r.LinkService, linkID)
+	return resolvers.SyncLink(ctx, r.LinkService, linkID)
 }
 
 // ApiInfo returns generated.ApiInfoResolver implementation.
