@@ -51,6 +51,8 @@ type Query {
     getSavedLinks: [Link!]
     "get episodes from thetvdb"
     getEpisodesFromTheTVDB(thetvdbID: String!): [TheTVDBEpisode!]
+    "sync thetvdb"
+    syncLink(linkID: String!): Boolean!
 }
 
 type Mutation {

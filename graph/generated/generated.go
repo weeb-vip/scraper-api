@@ -73,6 +73,7 @@ type ComplexityRoot struct {
 		GetEpisodesFromTheTvdb func(childComplexity int, thetvdbID string) int
 		GetSavedLinks          func(childComplexity int) int
 		SearchTheTvdb          func(childComplexity int, input *model.TheTVDBSearchInput) int
+		SyncLink               func(childComplexity int, linkID string) int
 		__resolve__service     func(childComplexity int) int
 		__resolve_entities     func(childComplexity int, representations []map[string]interface{}) int
 	}
@@ -125,6 +126,7 @@ type QueryResolver interface {
 	SearchTheTvdb(ctx context.Context, input *model.TheTVDBSearchInput) ([]*model.TheTVDBAnime, error)
 	GetSavedLinks(ctx context.Context) ([]*model.Link, error)
 	GetEpisodesFromTheTvdb(ctx context.Context, thetvdbID string) ([]*model.TheTVDBEpisode, error)
+	SyncLink(ctx context.Context, linkID string) (bool, error)
 }
 
 type executableSchema struct {
@@ -245,6 +247,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.SearchTheTvdb(childComplexity, args["input"].(*model.TheTVDBSearchInput)), true
+
+	case "Query.syncLink":
+		if e.complexity.Query.SyncLink == nil {
+			break
+		}
+
+		args, err := ec.field_Query_syncLink_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.SyncLink(childComplexity, args["linkID"].(string)), true
 
 	case "Query._service":
 		if e.complexity.Query.__resolve__service == nil {
@@ -585,6 +599,8 @@ type Query {
     getSavedLinks: [Link!]
     "get episodes from thetvdb"
     getEpisodesFromTheTVDB(thetvdbID: String!): [TheTVDBEpisode!]
+    "sync thetvdb"
+    syncLink(linkID: String!): Boolean!
 }
 
 type Mutation {
@@ -768,6 +784,21 @@ func (ec *executionContext) field_Query_searchTheTVDB_args(ctx context.Context, 
 		}
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_syncLink_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["linkID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("linkID"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["linkID"] = arg0
 	return args, nil
 }
 
@@ -1434,6 +1465,61 @@ func (ec *executionContext) fieldContext_Query_getEpisodesFromTheTVDB(ctx contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_getEpisodesFromTheTVDB_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_syncLink(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_syncLink(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().SyncLink(rctx, fc.Args["linkID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_syncLink(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_syncLink_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -4680,6 +4766,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getEpisodesFromTheTVDB(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "syncLink":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_syncLink(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
 				return res
 			}
 
