@@ -79,7 +79,7 @@ func (a *TheTVDBLinkRepository) Save(ctx context.Context, animeId string, TVDBID
 
 	// find if link already exists
 	var existing TheTVDBLink
-	err := a.db.DB.Where("anime_id = ? AND thetvdb_id = ? AND season_number = ?", animeId, TVDBID, season).First(&existing).Error
+	err := a.db.DB.Where("anime_id = ? AND thetvdb_id = ?", animeId, TVDBID, season).First(&existing).Error
 	if err == nil {
 		uuidString = existing.ID
 	}
