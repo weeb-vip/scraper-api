@@ -9,6 +9,8 @@ type APIInfo struct {
 	Name string `json:"name"`
 }
 
+func (APIInfo) IsEntity() {}
+
 type Link struct {
 	// ID of the link
 	ID string `json:"id"`
