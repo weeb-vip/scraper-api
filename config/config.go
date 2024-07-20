@@ -11,7 +11,7 @@ type Config struct {
 }
 
 type AppConfig struct {
-	APPName string `default:"anime-api"`
+	APPName string `default:"scraper-api"`
 	Port    int    `env:"PORT" default:"3000"`
 	Version string `default:"x.x.x" env:"VERSION"`
 }

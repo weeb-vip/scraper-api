@@ -7,7 +7,7 @@ type ScraperAPI {
     version: String!
 }
 
-type ApiInfo {
+type ApiInfo @key(fields: "name") {
     "API Info of the ScraperAPI"
     scraperAPI: ScraperAPI! @goField(forceResolver: true)
     "Name of the API"

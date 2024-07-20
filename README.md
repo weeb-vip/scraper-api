@@ -1,2 +1,2 @@
-# anime-api
+# scraper-api
 golang anime api with graphql
