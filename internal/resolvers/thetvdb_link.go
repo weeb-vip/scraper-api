@@ -74,6 +74,7 @@ func GetAnimeEpisodes(ctx context.Context, theTVDBService thetvdb_service.TheTVD
 			EpisodeNumber: *episode.Number,
 			Image:         episode.Image,
 			Description:   episode.Overview,
+			AirDate:       episode.Aired,
 		}
 		theTVDBEpisodes = append(theTVDBEpisodes, theTVDBEpisode)
 	}

@@ -42,6 +42,8 @@ type TheTVDBEpisode {
     image: String
     "Episode Description"
     description: String
+    "Episode Air Date"
+    airDate: String
 }
 
 type Query {

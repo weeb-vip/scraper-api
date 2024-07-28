@@ -94,6 +94,7 @@ type ComplexityRoot struct {
 	}
 
 	TheTVDBEpisode struct {
+		AirDate       func(childComplexity int) int
 		Description   func(childComplexity int) int
 		EpisodeNumber func(childComplexity int) int
 		ID            func(childComplexity int) int
@@ -341,6 +342,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.TheTVDBAnime.Year(childComplexity), true
+
+	case "TheTVDBEpisode.airDate":
+		if e.complexity.TheTVDBEpisode.AirDate == nil {
+			break
+		}
+
+		return e.complexity.TheTVDBEpisode.AirDate(childComplexity), true
 
 	case "TheTVDBEpisode.description":
 		if e.complexity.TheTVDBEpisode.Description == nil {
@@ -590,6 +598,8 @@ type TheTVDBEpisode {
     image: String
     "Episode Description"
     description: String
+    "Episode Air Date"
+    airDate: String
 }
 
 type Query {
@@ -1453,6 +1463,8 @@ func (ec *executionContext) fieldContext_Query_getEpisodesFromTheTVDB(ctx contex
 				return ec.fieldContext_TheTVDBEpisode_image(ctx, field)
 			case "description":
 				return ec.fieldContext_TheTVDBEpisode_description(ctx, field)
+			case "airDate":
+				return ec.fieldContext_TheTVDBEpisode_airDate(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type TheTVDBEpisode", field.Name)
 		},
@@ -2435,6 +2447,47 @@ func (ec *executionContext) _TheTVDBEpisode_description(ctx context.Context, fie
 }
 
 func (ec *executionContext) fieldContext_TheTVDBEpisode_description(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TheTVDBEpisode",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TheTVDBEpisode_airDate(ctx context.Context, field graphql.CollectedField, obj *model.TheTVDBEpisode) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TheTVDBEpisode_airDate(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AirDate, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TheTVDBEpisode_airDate(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "TheTVDBEpisode",
 		Field:      field,
@@ -5010,6 +5063,8 @@ func (ec *executionContext) _TheTVDBEpisode(ctx context.Context, sel ast.Selecti
 			out.Values[i] = ec._TheTVDBEpisode_image(ctx, field, obj)
 		case "description":
 			out.Values[i] = ec._TheTVDBEpisode_description(ctx, field, obj)
+		case "airDate":
+			out.Values[i] = ec._TheTVDBEpisode_airDate(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

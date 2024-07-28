@@ -74,6 +74,8 @@ type TheTVDBEpisode struct {
 	Image *string `json:"image,omitempty"`
 	// Episode Description
 	Description *string `json:"description,omitempty"`
+	// Episode Air Date
+	AirDate *string `json:"airDate,omitempty"`
 }
 
 type TheTVDBSearchInput struct {
