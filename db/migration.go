@@ -38,7 +38,7 @@ func getMigration() (*migrate.Migrate, error) {
 	if err != nil {
 		return nil, err
 	}
-	dbdriver, err := postgres.WithInstance(sqldb, &postgres.Config{})
+	dbdriver, err := postgres.WithInstance(sqldb, &postgres.Config{MigrationsTable: "scraper-api"})
 	// log files in migrations folder
 	files, err := migrations.ReadDir("migrations")
 	if err != nil {
