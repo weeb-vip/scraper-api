@@ -34,7 +34,7 @@ func StartServer() error {
 	cfg := config.LoadConfigOrPanic()
 	router := SetupServer(cfg)
 
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", cfg.AppConfig.Port)
+	log.Printf("connect to http://localhost:%d/ for GraphQL playground", cfg.AppConfig.Port)
 
 	return http.ListenAndServe(fmt.Sprintf(":%d", cfg.AppConfig.Port), router)
 }
