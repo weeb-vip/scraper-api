@@ -44,7 +44,8 @@ type ResolverRoot interface {
 }
 
 type DirectiveRoot struct {
-	Scoped func(ctx context.Context, obj interface{}, next graphql.Resolver, scope string) (res interface{}, err error)
+	Authenticated func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
+	Scoped        func(ctx context.Context, obj interface{}, next graphql.Resolver, scope string) (res interface{}, err error)
 }
 
 type ComplexityRoot struct {
@@ -546,7 +547,8 @@ directive @goTag(
 """
 ensures a user is logged in to access a particular field
 """
-directive @scoped(scope: String!) on FIELD_DEFINITION | ENUM_VALUE`, BuiltIn: false},
+directive @scoped(scope: String!) on FIELD_DEFINITION | ENUM_VALUE
+directive @Authenticated on FIELD_DEFINITION`, BuiltIn: false},
 	{Name: "../scalars.graphqls", Input: `# lint-disable defined-types-are-used
 "RFC3339 formatted DateTime"
 scalar Time
@@ -606,16 +608,16 @@ type Query {
     "Search thetvdb for anime"
     searchTheTVDB(input: TheTVDBSearchInput): [TheTVDBAnime!]
     "Saved Links"
-    getSavedLinks: [Link!]
+    getSavedLinks: [Link!] @Authenticated
     "get episodes from thetvdb"
     getEpisodesFromTheTVDB(thetvdbID: String!): [TheTVDBEpisode!]
     "sync thetvdb"
-    syncLink(linkID: String!): Boolean!
+    syncLink(linkID: String!): Boolean! @Authenticated
 }
 
 type Mutation {
     "Save link"
-    saveLink(input: SaveLinkInput): Link!
+    saveLink(input: SaveLinkInput): Link! @Authenticated
 }
 
 input SaveLinkInput {
@@ -1236,8 +1238,28 @@ func (ec *executionContext) _Mutation_saveLink(ctx context.Context, field graphq
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().SaveLink(rctx, fc.Args["input"].(*model.SaveLinkInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().SaveLink(rctx, fc.Args["input"].(*model.SaveLinkInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive Authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Link); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/weeb-vip/scraper-api/graph/model.Link`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1373,8 +1395,28 @@ func (ec *executionContext) _Query_getSavedLinks(ctx context.Context, field grap
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetSavedLinks(rctx)
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().GetSavedLinks(rctx)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive Authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.Link); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/weeb-vip/scraper-api/graph/model.Link`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1496,8 +1538,28 @@ func (ec *executionContext) _Query_syncLink(ctx context.Context, field graphql.C
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().SyncLink(rctx, fc.Args["linkID"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().SyncLink(rctx, fc.Args["linkID"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive Authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(bool); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)

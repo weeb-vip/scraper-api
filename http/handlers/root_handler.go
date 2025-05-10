@@ -2,10 +2,13 @@ package handlers
 
 import (
 	"context"
+	"fmt"
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/weeb-vip/scraper-api/config"
 	"github.com/weeb-vip/scraper-api/graph"
 	"github.com/weeb-vip/scraper-api/graph/generated"
+	"github.com/weeb-vip/scraper-api/http/handlers/requestinfo"
 	"github.com/weeb-vip/scraper-api/internal/db"
 	anime2 "github.com/weeb-vip/scraper-api/internal/db/repositories/anime"
 	anime3 "github.com/weeb-vip/scraper-api/internal/db/repositories/anime_episode"
@@ -40,6 +43,16 @@ func BuildRootHandler(conf config.Config) http.Handler {
 	}
 
 	cfg := generated.Config{Resolvers: resolvers, Directives: directives.GetDirectives()}
+	cfg.Directives.Authenticated = func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error) {
+		req := requestinfo.FromContext(ctx)
+
+		if req.UserID == nil {
+			// unauthorized
+			return nil, fmt.Errorf("Access denied")
+		}
+
+		return next(ctx)
+	}
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(cfg))
 

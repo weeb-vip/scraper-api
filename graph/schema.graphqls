@@ -50,16 +50,16 @@ type Query {
     "Search thetvdb for anime"
     searchTheTVDB(input: TheTVDBSearchInput): [TheTVDBAnime!]
     "Saved Links"
-    getSavedLinks: [Link!]
+    getSavedLinks: [Link!] @Authenticated
     "get episodes from thetvdb"
     getEpisodesFromTheTVDB(thetvdbID: String!): [TheTVDBEpisode!]
     "sync thetvdb"
-    syncLink(linkID: String!): Boolean!
+    syncLink(linkID: String!): Boolean! @Authenticated
 }
 
 type Mutation {
     "Save link"
-    saveLink(input: SaveLinkInput): Link!
+    saveLink(input: SaveLinkInput): Link! @Authenticated
 }
 
 input SaveLinkInput {

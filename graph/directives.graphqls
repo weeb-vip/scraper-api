@@ -18,3 +18,4 @@ directive @goTag(
 ensures a user is logged in to access a particular field
 """
 directive @scoped(scope: String!) on FIELD_DEFINITION | ENUM_VALUE
+directive @Authenticated on FIELD_DEFINITION
