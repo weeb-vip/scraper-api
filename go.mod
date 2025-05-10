@@ -18,6 +18,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/rs/cors v1.11.0
 	github.com/spf13/cobra v1.7.0
+	github.com/stretchr/testify v1.8.4
 	github.com/vektah/gqlparser/v2 v2.5.8
 	go.uber.org/zap v1.27.0
 	gopkg.in/DataDog/dd-trace-go.v1 v1.56.0
@@ -47,6 +48,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/danieljoos/wincred v1.1.2 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/dvsekhvalnov/jose2go v1.6.0 // indirect
 	github.com/ebitengine/purego v0.5.0-alpha.1 // indirect
@@ -76,6 +78,7 @@ require (
 	github.com/philhofer/fwd v1.1.2 // indirect
 	github.com/pierrec/lz4 v2.0.5+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.17.0 // indirect
 	github.com/prometheus/client_model v0.4.1-0.20230718164431-9a2bf3000d16 // indirect
 	github.com/prometheus/common v0.44.0 // indirect
