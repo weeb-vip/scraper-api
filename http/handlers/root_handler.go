@@ -8,6 +8,7 @@ import (
 	"github.com/weeb-vip/scraper-api/config"
 	"github.com/weeb-vip/scraper-api/graph"
 	"github.com/weeb-vip/scraper-api/graph/generated"
+	"github.com/weeb-vip/scraper-api/http/handlers/logger"
 	"github.com/weeb-vip/scraper-api/http/handlers/requestinfo"
 	"github.com/weeb-vip/scraper-api/internal/db"
 	anime2 "github.com/weeb-vip/scraper-api/internal/db/repositories/anime"
@@ -56,5 +57,5 @@ func BuildRootHandler(conf config.Config) http.Handler {
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(cfg))
 
-	return srv
+	return requestinfo.Handler()(logger.Handler()(srv))
 }
