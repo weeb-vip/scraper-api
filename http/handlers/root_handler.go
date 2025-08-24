@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/weeb-vip/scraper-api/config"
 	"github.com/weeb-vip/scraper-api/graph"
 	"github.com/weeb-vip/scraper-api/graph/generated"
@@ -34,7 +36,18 @@ func BuildRootHandler(conf config.Config) http.Handler {
 	theTVDBService := thetvdb_service.NewTheTVDBService(theTVDBAPI)
 	theTVDBLinkRepository := thetvdblink.NewTheTVDBLinkRepository(database)
 	producerService := producer.NewProducer[link_service.LinkProducerStruct](context.Background(), conf.PulsarConfig)
-	linkService := link_service.NewLinkService(theTVDBLinkRepository, producerService)
+	
+	// Create a wrapper function to convert Pulsar producer to Kafka producer function signature
+	kafkaProducerFunc := func(ctx context.Context, message *kafka.Message) error {
+		// Convert Kafka message to JSON payload for Pulsar
+		payload, err := json.Marshal(message.Value)
+		if err != nil {
+			return err
+		}
+		return producerService.Send(ctx, payload)
+	}
+	
+	linkService := link_service.NewLinkService(theTVDBLinkRepository, kafkaProducerFunc)
 	resolvers := &graph.Resolver{
 		Config:              conf,
 		AnimeService:        animeService,

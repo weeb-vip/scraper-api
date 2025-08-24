@@ -3,8 +3,8 @@ package link_service
 import (
 	"context"
 	"encoding/json"
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/weeb-vip/scraper-api/internal/db/repositories/thetvdblink"
-	"github.com/weeb-vip/scraper-api/internal/producer"
 )
 
 type LinkProducerStruct struct {
@@ -27,11 +27,11 @@ type LinkService interface {
 
 type Link struct {
 	repo     thetvdblink.TheTVDBLinkRepositoryImpl
-	producer producer.Producer[LinkProducerStruct]
+	Producer func(ctx context.Context, message *kafka.Message) error
 }
 
-func NewLinkService(repo thetvdblink.TheTVDBLinkRepositoryImpl, producer producer.Producer[LinkProducerStruct]) LinkService {
-	return &Link{repo: repo, producer: producer}
+func NewLinkService(repo thetvdblink.TheTVDBLinkRepositoryImpl, producer func(ctx context.Context, message *kafka.Message) error) LinkService {
+	return &Link{repo: repo, Producer: producer}
 }
 
 func (l *Link) FindAll(ctx context.Context) ([]*thetvdblink.TheTVDBLink, error) {
@@ -74,5 +74,7 @@ func (l *Link) Sync(ctx context.Context, id string) error {
 	})
 	// convert to bytes
 
-	return l.producer.Send(ctx, jsonLink)
+	return l.Producer(ctx, &kafka.Message{
+		Value: jsonLink,
+	})
 }

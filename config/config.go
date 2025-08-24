@@ -10,6 +10,7 @@ type Config struct {
 	DataDogConfig DataDogConfig
 	TheTVDBConfig TheTVDBConfig `env:"THETVDB"`
 	PulsarConfig  PulsarConfig
+	KafkaConfig   KafkaConfig
 }
 
 type AppConfig struct {
@@ -40,6 +41,13 @@ type TheTVDBConfig struct {
 type PulsarConfig struct {
 	URL           string `default:"pulsar://localhost:6650" env:"PULSARURL"`
 	ProducerTopic string `default:"public/default/myanimelist.public.anime-algolia" env:"PULSARPRODUCERTOPIC"`
+}
+
+type KafkaConfig struct {
+	ConsumerGroupName string `default:"image-sync-group" env:"KAFKA_CONSUMER_GROUP_NAME"`
+	BootstrapServers  string `default:"localhost:9092" env:"KAFKA_BOOTSTRAP_SERVERS"`
+	Offset            string `default:"earliest" env:"KAFKA_OFFSET"`
+	ProducerTopic     string `default:"image-sync" env:"KAFKA_PRODUCER_TOPIC"`
 }
 
 func LoadConfigOrPanic() Config {

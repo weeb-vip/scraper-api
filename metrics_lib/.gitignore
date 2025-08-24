@@ -22,6 +22,4 @@ go.work
 
 .idea
 
-mocks
-
 coverage.txt
