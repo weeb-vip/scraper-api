@@ -55,6 +55,8 @@ type Query {
     getEpisodesFromTheTVDB(thetvdbID: String!): [TheTVDBEpisode!]
     "sync thetvdb"
     syncLink(linkID: String!): Boolean! @Authenticated
+    "Sync all thetvdb IDs from links to anime table"
+    syncIDs: Boolean! @Authenticated
 }
 
 type Mutation {

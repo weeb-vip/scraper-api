@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/weeb-vip/scraper-api/internal/db/repositories/anime"
 	"github.com/weeb-vip/scraper-api/internal/db/repositories/thetvdblink"
 )
 
@@ -26,12 +27,13 @@ type LinkService interface {
 }
 
 type Link struct {
-	repo     thetvdblink.TheTVDBLinkRepositoryImpl
-	Producer func(ctx context.Context, message *kafka.Message) error
+	repo      thetvdblink.TheTVDBLinkRepositoryImpl
+	animeRepo anime.AnimeRepositoryImpl
+	Producer  func(ctx context.Context, message *kafka.Message) error
 }
 
-func NewLinkService(repo thetvdblink.TheTVDBLinkRepositoryImpl, producer func(ctx context.Context, message *kafka.Message) error) LinkService {
-	return &Link{repo: repo, Producer: producer}
+func NewLinkService(repo thetvdblink.TheTVDBLinkRepositoryImpl, animeRepo anime.AnimeRepositoryImpl, producer func(ctx context.Context, message *kafka.Message) error) LinkService {
+	return &Link{repo: repo, animeRepo: animeRepo, Producer: producer}
 }
 
 func (l *Link) FindAll(ctx context.Context) ([]*thetvdblink.TheTVDBLink, error) {
@@ -55,6 +57,13 @@ func (l *Link) Save(ctx context.Context, animeId string, TVDBID string, season i
 	if err != nil {
 		return nil, err
 	}
+	
+	// Update the anime's thetvdbid field
+	if err := l.animeRepo.UpdateTheTVDBID(ctx, animeId, TVDBID); err != nil {
+		// Log error but don't fail the link save operation
+		// You might want to add proper logging here
+	}
+	
 	return link, nil
 }
 

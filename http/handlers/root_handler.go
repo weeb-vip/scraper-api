@@ -62,7 +62,7 @@ func BuildRootHandler(conf config.Config) http.Handler {
 	theTVDBService := thetvdb_service.NewTheTVDBService(theTVDBAPI)
 	theTVDBLinkRepository := thetvdblink.NewTheTVDBLinkRepository(database)
 
-	linkService := link_service.NewLinkService(theTVDBLinkRepository, kafkaProducer(context.Background(), driver, conf.KafkaConfig.ProducerTopic))
+	linkService := link_service.NewLinkService(theTVDBLinkRepository, animeRepository, kafkaProducer(context.Background(), driver, conf.KafkaConfig.ProducerTopic))
 	resolvers := &graph.Resolver{
 		Config:              conf,
 		AnimeService:        animeService,

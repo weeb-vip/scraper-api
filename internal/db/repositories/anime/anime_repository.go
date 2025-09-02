@@ -37,6 +37,7 @@ type AnimeRepositoryImpl interface {
 	MostPopularAnime(ctx context.Context, limit int) ([]*Anime, error)
 	NewestAnime(ctx context.Context, limit int) ([]*Anime, error)
 	AiringAnime(ctx context.Context, limit int) ([]*Anime, error)
+	UpdateTheTVDBID(ctx context.Context, animeID string, thetvdbID string) error
 }
 
 type AnimeRepository struct {
@@ -662,4 +663,27 @@ func (a *AnimeRepository) AiringAnime(ctx context.Context, limit int) ([]*Anime,
 		Result:  metrics_lib.Success,
 	})
 	return animes, nil
+}
+
+func (a *AnimeRepository) UpdateTheTVDBID(ctx context.Context, animeID string, thetvdbID string) error {
+	startTime := time.Now()
+
+	err := a.db.DB.Model(&Anime{}).Where("id = ?", animeID).Update("thetvdbid", thetvdbID).Error
+	if err != nil {
+		_ = metrics.NewMetricsInstance().DatabaseMetric(float64(time.Since(startTime).Milliseconds()), metrics_lib.DatabaseMetricLabels{
+			Service: "scraper-api",
+			Table:   "anime",
+			Method:  metrics_lib.DatabaseMetricMethodUpdate,
+			Result:  metrics_lib.Error,
+		})
+		return err
+	}
+
+	_ = metrics.NewMetricsInstance().DatabaseMetric(float64(time.Since(startTime).Milliseconds()), metrics_lib.DatabaseMetricLabels{
+		Service: "scraper-api",
+		Table:   "anime",
+		Method:  metrics_lib.DatabaseMetricMethodUpdate,
+		Result:  metrics_lib.Success,
+	})
+	return nil
 }

@@ -74,6 +74,7 @@ type ComplexityRoot struct {
 		GetEpisodesFromTheTvdb func(childComplexity int, thetvdbID string) int
 		GetSavedLinks          func(childComplexity int) int
 		SearchTheTvdb          func(childComplexity int, input *model.TheTVDBSearchInput) int
+		SyncIDs                func(childComplexity int) int
 		SyncLink               func(childComplexity int, linkID string) int
 		__resolve__service     func(childComplexity int) int
 		__resolve_entities     func(childComplexity int, representations []map[string]interface{}) int
@@ -129,6 +130,7 @@ type QueryResolver interface {
 	GetSavedLinks(ctx context.Context) ([]*model.Link, error)
 	GetEpisodesFromTheTvdb(ctx context.Context, thetvdbID string) ([]*model.TheTVDBEpisode, error)
 	SyncLink(ctx context.Context, linkID string) (bool, error)
+	SyncIDs(ctx context.Context) (bool, error)
 }
 
 type executableSchema struct {
@@ -249,6 +251,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.SearchTheTvdb(childComplexity, args["input"].(*model.TheTVDBSearchInput)), true
+
+	case "Query.syncIDs":
+		if e.complexity.Query.SyncIDs == nil {
+			break
+		}
+
+		return e.complexity.Query.SyncIDs(childComplexity), true
 
 	case "Query.syncLink":
 		if e.complexity.Query.SyncLink == nil {
@@ -613,6 +622,8 @@ type Query {
     getEpisodesFromTheTVDB(thetvdbID: String!): [TheTVDBEpisode!]
     "sync thetvdb"
     syncLink(linkID: String!): Boolean! @Authenticated
+    "Sync all thetvdb IDs from links to anime table"
+    syncIDs: Boolean! @Authenticated
 }
 
 type Mutation {
@@ -1596,6 +1607,70 @@ func (ec *executionContext) fieldContext_Query_syncLink(ctx context.Context, fie
 	if fc.Args, err = ec.field_Query_syncLink_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_syncIDs(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_syncIDs(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().SyncIDs(rctx)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Authenticated == nil {
+				return nil, errors.New("directive Authenticated is not implemented")
+			}
+			return ec.directives.Authenticated(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(bool); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_syncIDs(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -4900,6 +4975,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_syncLink(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "syncIDs":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_syncIDs(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}

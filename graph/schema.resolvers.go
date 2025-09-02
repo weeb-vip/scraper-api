@@ -43,6 +43,11 @@ func (r *queryResolver) SyncLink(ctx context.Context, linkID string) (bool, erro
 	return resolvers.SyncLink(ctx, r.LinkService, linkID)
 }
 
+// SyncIDs is the resolver for the syncIDs field.
+func (r *queryResolver) SyncIDs(ctx context.Context) (bool, error) {
+	return resolvers.SyncIDs(ctx, r.LinkService, r.AnimeService)
+}
+
 // ApiInfo returns generated.ApiInfoResolver implementation.
 func (r *Resolver) ApiInfo() generated.ApiInfoResolver { return &apiInfoResolver{r} }
 

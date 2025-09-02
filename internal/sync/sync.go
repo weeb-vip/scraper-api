@@ -7,6 +7,7 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/weeb-vip/scraper-api/config"
 	"github.com/weeb-vip/scraper-api/internal/db"
+	"github.com/weeb-vip/scraper-api/internal/db/repositories/anime"
 	"github.com/weeb-vip/scraper-api/internal/db/repositories/thetvdblink"
 	"github.com/weeb-vip/scraper-api/internal/logger"
 	"github.com/weeb-vip/scraper-api/internal/services/link_service"
@@ -22,6 +23,7 @@ func Sync() error {
 
 	database := db.NewDatabase(cfg.DBConfig)
 	theTVDBLinkRepository := thetvdblink.NewTheTVDBLinkRepository(database)
+	animeRepository := anime.NewAnimeRepository(database)
 
 	kafkaConfig := &epKafka.KafkaConfig{
 		ConsumerGroupName:        cfg.KafkaConfig.ConsumerGroupName,
@@ -46,7 +48,7 @@ func Sync() error {
 		}
 	}(driver)
 
-	linkService := link_service.NewLinkService(theTVDBLinkRepository, kafkaProducer(ctx, driver, cfg.KafkaConfig.ProducerTopic))
+	linkService := link_service.NewLinkService(theTVDBLinkRepository, animeRepository, kafkaProducer(ctx, driver, cfg.KafkaConfig.ProducerTopic))
 
 	// get all links
 	theTVDBLinks, err := theTVDBLinkRepository.FindAll(ctx)
