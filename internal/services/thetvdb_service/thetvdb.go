@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/weeb-vip/scraper-api/internal/services/thetvdb_api"
 	"strconv"
+	"sync"
 )
 
 type AnimeEpisodeWithTranslation struct {
@@ -73,23 +74,63 @@ func (s *TheTVDBServiceImpl) getAnimeEpisodes(ctx context.Context, seriesID stri
 		return nil, err
 	}
 
-	var episodesWithTranslations []AnimeEpisodeWithTranslation
-	for _, episode := range episodes.Episodes {
-		translations := make(map[string]*thetvdb_api.Translation)
+	episodesWithTranslations := make([]AnimeEpisodeWithTranslation, len(episodes.Episodes))
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(episodes.Episodes))
 
-		episodeID := strconv.FormatInt(*episode.ID, 10)
-		for _, translation := range episode.NameTranslations {
-			translationRes, err := s.getEpisodeTranslation(ctx, episodeID, translation)
-			if err != nil {
-				return nil, err
+	for i, episode := range episodes.Episodes {
+		wg.Add(1)
+		go func(index int, ep thetvdb_api.EpisodeBaseRecord) {
+			defer wg.Done()
+
+			translations := make(map[string]*thetvdb_api.Translation)
+			episodeID := strconv.FormatInt(*ep.ID, 10)
+
+			var translationWg sync.WaitGroup
+			translationChan := make(chan struct {
+				lang        string
+				translation *thetvdb_api.Translation
+				err         error
+			}, len(ep.NameTranslations))
+
+			for _, translation := range ep.NameTranslations {
+				translationWg.Add(1)
+				go func(lang string) {
+					defer translationWg.Done()
+					translationRes, err := s.getEpisodeTranslation(ctx, episodeID, lang)
+					translationChan <- struct {
+						lang        string
+						translation *thetvdb_api.Translation
+						err         error
+					}{lang, translationRes, err}
+				}(translation)
 			}
-			translations[translation] = translationRes
-		}
 
-		episodesWithTranslations = append(episodesWithTranslations, AnimeEpisodeWithTranslation{
-			EpisodeBaseRecord: episode,
-			Translations:      translations,
-		})
+			go func() {
+				translationWg.Wait()
+				close(translationChan)
+			}()
+
+			for result := range translationChan {
+				if result.err != nil {
+					errChan <- result.err
+					return
+				}
+				translations[result.lang] = result.translation
+			}
+
+			episodesWithTranslations[index] = AnimeEpisodeWithTranslation{
+				EpisodeBaseRecord: ep,
+				Translations:      translations,
+			}
+		}(i, episode)
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	if err := <-errChan; err != nil {
+		return nil, err
 	}
 
 	return &episodesWithTranslations, nil
