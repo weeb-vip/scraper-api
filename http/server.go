@@ -7,6 +7,7 @@ import (
 	"github.com/rs/cors"
 	"github.com/weeb-vip/scraper-api/config"
 	"github.com/weeb-vip/scraper-api/http/handlers"
+	"github.com/weeb-vip/scraper-api/http/middleware"
 	"github.com/weeb-vip/scraper-api/metrics"
 	"log"
 	"net/http"
@@ -23,7 +24,7 @@ func SetupServer(cfg config.Config) *chi.Mux {
 	}).Handler)
 
 	router.Handle("/ui/playground", playground.Handler("GraphQL playground", "/graphql"))
-	router.Handle("/graphql", handlers.BuildRootHandler(cfg))
+	router.With(middleware.GzipRequestMiddleware, middleware.GzipMiddleware).Handle("/graphql", handlers.BuildRootHandler(cfg))
 	router.Handle("/healthcheck", handlers.HealthCheckHandler())
 	router.Handle("/metrics", metrics.NewPrometheusInstance().Handler())
 
