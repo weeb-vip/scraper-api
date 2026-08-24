@@ -1,6 +1,6 @@
 {
   "dbconfig": {
-    "host": "192.168.9.88",
+    "host": "192.168.9.89",
     "user": "postgres",
     "password": "mysecretpassword",
     "database": "anime",

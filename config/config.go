@@ -9,8 +9,9 @@ type Config struct {
 	DBConfig      DBConfig
 	DataDogConfig DataDogConfig
 	TheTVDBConfig TheTVDBConfig `env:"THETVDB"`
-	PulsarConfig  PulsarConfig
 	KafkaConfig   KafkaConfig
+	NatsConfig    NatsConfig
+	ProducerType  string `default:"kafka" env:"PRODUCER_TYPE"`
 }
 
 type AppConfig struct {
@@ -38,16 +39,28 @@ type TheTVDBConfig struct {
 	APIPIN string `default:"" env:"API_PIN"`
 }
 
-type PulsarConfig struct {
-	URL           string `default:"pulsar://localhost:6650" env:"PULSARURL"`
-	ProducerTopic string `default:"public/default/myanimelist.public.anime-algolia" env:"PULSARPRODUCERTOPIC"`
-}
-
 type KafkaConfig struct {
 	ConsumerGroupName string `default:"image-sync-group" env:"KAFKA_CONSUMER_GROUP_NAME"`
 	BootstrapServers  string `default:"localhost:9092" env:"KAFKA_BOOTSTRAP_SERVERS"`
 	Offset            string `default:"earliest" env:"KAFKA_OFFSET"`
 	ProducerTopic     string `default:"image-sync" env:"KAFKA_PRODUCER_TOPIC"`
+}
+
+// NatsConfig is the producer half of KafkaConfig, for PRODUCER_TYPE=nats.
+//
+// Which transport is used is decided at startup rather than by a command name:
+// this producer is constructed inside the GraphQL handler and inside the sync
+// job, so there is no single process to name the way the standalone consumers
+// have.
+type NatsConfig struct {
+	URL string `default:"nats://localhost:4222" env:"NATSURL"`
+
+	// Empty StreamName: this subject is produced here rather than by Debezium,
+	// so nothing else declares a stream over it and the driver creates one from
+	// the subject.
+	StreamName string `env:"NATSSTREAMNAME"`
+
+	ProducerSubject string `default:"image-sync" env:"NATSPRODUCERSUBJECT"`
 }
 
 func LoadConfigOrPanic() Config {

@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/ThatCatDev/ep/v2/drivers"
-	epKafka "github.com/ThatCatDev/ep/v2/drivers/kafka"
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/weeb-vip/scraper-api/config"
 	"github.com/weeb-vip/scraper-api/graph"
 	"github.com/weeb-vip/scraper-api/graph/generated"
@@ -18,6 +15,7 @@ import (
 	anime3 "github.com/weeb-vip/scraper-api/internal/db/repositories/anime_episode"
 	"github.com/weeb-vip/scraper-api/internal/db/repositories/thetvdblink"
 	"github.com/weeb-vip/scraper-api/internal/directives"
+	"github.com/weeb-vip/scraper-api/internal/eventbus"
 	logger2 "github.com/weeb-vip/scraper-api/internal/logger"
 	"github.com/weeb-vip/scraper-api/internal/services/anime"
 	"github.com/weeb-vip/scraper-api/internal/services/episodes"
@@ -30,28 +28,21 @@ import (
 
 func BuildRootHandler(conf config.Config) http.Handler {
 	log := logger2.Get()
-	kafkaConfig := &epKafka.KafkaConfig{
-		ConsumerGroupName:        conf.KafkaConfig.ConsumerGroupName,
-		BootstrapServers:         conf.KafkaConfig.BootstrapServers,
-		SaslMechanism:            nil,
-		SecurityProtocol:         nil,
-		Username:                 nil,
-		Password:                 nil,
-		ConsumerSessionTimeoutMs: nil,
-		ConsumerAutoOffsetReset:  &conf.KafkaConfig.Offset,
-		ClientID:                 nil,
-		Debug:                    nil,
+	// The publisher outlives this function on purpose.
+	//
+	// BuildRootHandler runs once at startup (see http/server.go) and returns an
+	// http.Handler, so the driver must survive for the life of the process. The
+	// previous code deferred driver.Close() here, which closed it the moment the
+	// builder returned -- before a single request had been served. Closing is
+	// left to process exit.
+	publish, _, err := eventbus.New(conf)
+	if err != nil {
+		panic(err)
 	}
 
-	driver := epKafka.NewKafkaDriver(kafkaConfig)
-	defer func(driver drivers.Driver[*kafka.Message]) {
-		err := driver.Close()
-		if err != nil {
-			log.Error("Error closing Kafka driver", zap.String("error", err.Error()))
-		} else {
-			log.Info("Kafka driver closed successfully")
-		}
-	}(driver)
+	// Worth a line at startup: which broker this writes to is otherwise
+	// invisible until something downstream notices events are missing.
+	log.Info("event producer configured", zap.String("producer_type", conf.ProducerType))
 
 	database := db.NewDatabase(conf.DBConfig)
 	animeRepository := anime2.NewAnimeRepository(database)
@@ -62,7 +53,7 @@ func BuildRootHandler(conf config.Config) http.Handler {
 	theTVDBService := thetvdb_service.NewTheTVDBService(theTVDBAPI)
 	theTVDBLinkRepository := thetvdblink.NewTheTVDBLinkRepository(database)
 
-	linkService := link_service.NewLinkService(theTVDBLinkRepository, animeRepository, kafkaProducer(context.Background(), driver, conf.KafkaConfig.ProducerTopic))
+	linkService := link_service.NewLinkService(theTVDBLinkRepository, animeRepository, publish)
 	resolvers := &graph.Resolver{
 		Config:              conf,
 		AnimeService:        animeService,
@@ -86,16 +77,4 @@ func BuildRootHandler(conf config.Config) http.Handler {
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(cfg))
 
 	return requestinfo.Handler()(logger.Handler()(srv))
-}
-
-func kafkaProducer(ctx context.Context, driver drivers.Driver[*kafka.Message], topic string) func(ctx context.Context, message *kafka.Message) error {
-	return func(ctx context.Context, message *kafka.Message) error {
-		log := logger2.FromCtx(ctx)
-		log.Info("Producing message to Kafka", zap.String("topic", topic), zap.String("key", string(message.Key)), zap.String("value", string(message.Value)))
-		if err := driver.Produce(ctx, topic, message); err != nil {
-			log.Error("Failed to produce message", zap.String("topic", topic), zap.Error(err))
-			return err
-		}
-		return nil
-	}
 }
