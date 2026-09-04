@@ -19,6 +19,13 @@ type Options struct {
 	DelayMs       int
 	After         string
 	RequiredRatio float64
+	// OnlyUnlinked skips anime that already have a link.
+	//
+	// What the nightly run wants: after the first full pass the remaining work
+	// is new shows, and re-deriving 9,000 anime every night would spend
+	// thousands of TheTVDB calls to confirm what it already knows. A full
+	// re-derive stays available by turning this off.
+	OnlyUnlinked bool
 }
 
 // Result is what a run did, for the caller to log.
@@ -74,15 +81,24 @@ func (r *Runner) episodeDays(ctx context.Context, animeID string) ([]time.Time, 
 	return aired, err
 }
 
-func (r *Runner) page(ctx context.Context, after string, limit int) ([]animeRow, error) {
+func (r *Runner) page(ctx context.Context, after string, limit int, onlyUnlinked bool) ([]animeRow, error) {
+	query := r.DB.WithContext(ctx).
+		Table("anime a").
+		Select("a.id, a.thetvdbid, a.title_en, a.start_date").
+		Where("a.thetvdbid IS NOT NULL AND a.thetvdbid <> '' AND a.id::text > ?", after).
+		Order("a.id::text").
+		Limit(limit)
+
+	if onlyUnlinked {
+		// anime_id is varchar in thetvdb_link and uuid on anime, so the join
+		// casts rather than relying on postgres to compare the two.
+		query = query.
+			Joins("LEFT JOIN thetvdb_link l ON l.anime_id = a.id::text").
+			Where("l.id IS NULL")
+	}
+
 	var rows []animeRow
-	err := r.DB.WithContext(ctx).
-		Table("anime").
-		Select("id, thetvdbid, title_en, start_date").
-		Where("thetvdbid IS NOT NULL AND thetvdbid <> '' AND id::text > ?", after).
-		Order("id::text").
-		Limit(limit).
-		Scan(&rows).Error
+	err := query.Scan(&rows).Error
 
 	return rows, err
 }
@@ -104,7 +120,7 @@ func (r *Runner) Run(ctx context.Context, opts Options, log func(string, ...inte
 	after := opts.After
 
 	for {
-		rows, err := r.page(ctx, after, 100)
+		rows, err := r.page(ctx, after, 100, opts.OnlyUnlinked)
 		if err != nil {
 			return result, err
 		}

@@ -52,13 +52,16 @@ Flags:
   --delay-ms N       pause after each series fetch, to stay under rate limits
   --after ID         resume from an anime id (exclusive)
   --required-ratio F share of an anime's dated episodes that must land on a
-                     season's air days for it to be accepted (default 0.8)`,
+                     season's air days for it to be accepted (default 0.8)
+  --only-unlinked    skip anime that already have a link. What the nightly sync
+                     uses; leave it off for a full re-derive`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		limit, _ := cmd.Flags().GetInt("limit")
 		delayMs, _ := cmd.Flags().GetInt("delay-ms")
 		after, _ := cmd.Flags().GetString("after")
 		ratio, _ := cmd.Flags().GetFloat64("required-ratio")
+		onlyUnlinked, _ := cmd.Flags().GetBool("only-unlinked")
 
 		conf := config.LoadConfigOrPanic()
 		database := db.NewDatabase(conf.DBConfig)
@@ -86,6 +89,7 @@ Flags:
 			DelayMs:       delayMs,
 			After:         after,
 			RequiredRatio: ratio,
+			OnlyUnlinked:  onlyUnlinked,
 		}, func(format string, args ...interface{}) {
 			fmt.Printf(format+"\n", args...)
 		})
@@ -105,6 +109,7 @@ func init() {
 	backfillSeasonsCmd.Flags().Int("limit", 0, "stop after N anime (0 = all)")
 	backfillSeasonsCmd.Flags().Int("delay-ms", 200, "pause after each series fetch")
 	backfillSeasonsCmd.Flags().String("after", "", "resume from an anime id (exclusive)")
+	backfillSeasonsCmd.Flags().Bool("only-unlinked", false, "skip anime that already have a link")
 	backfillSeasonsCmd.Flags().Float64("required-ratio", season_backfill.DefaultRequiredRatio,
 		"share of an anime's episodes that must land on a season's air days")
 	rootCmd.AddCommand(backfillSeasonsCmd)
