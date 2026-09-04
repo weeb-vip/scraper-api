@@ -78,8 +78,20 @@ func (a *TheTVDBLinkRepository) Save(ctx context.Context, animeId string, TVDBID
 	uuidString := uuid.New().String()
 
 	// find if link already exists
+	//
+	// Two placeholders, two arguments. It passed three -- animeId, TVDBID and
+	// season -- against a two-placeholder clause, so gorm rejected the query
+	// with "expected 2 arguments, got 3" on every call. The error then took the
+	// branch that keeps the freshly generated uuid, and Save inserted a second
+	// row instead of updating the first: one duplicate link per re-save, for a
+	// table whose whole job is to name one season per anime.
+	//
+	// Season is deliberately not part of the lookup. One anime is one season of
+	// one series, so matching on the pair is what makes this an upsert;
+	// including season would make a corrected season insert a rival row rather
+	// than fix the existing one.
 	var existing TheTVDBLink
-	err := a.db.DB.Where("anime_id = ? AND thetvdb_id = ?", animeId, TVDBID, season).First(&existing).Error
+	err := a.db.DB.Where("anime_id = ? AND thetvdb_id = ?", animeId, TVDBID).First(&existing).Error
 	if err == nil {
 		uuidString = existing.ID
 	}
