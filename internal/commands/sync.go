@@ -11,17 +11,27 @@ import (
 	"net/http"
 )
 
-// serveCmd represents the serve command
+// syncCmd is the nightly job: derive seasons for anime TheTVDB can place, then
+// republish every link so thetvdb-enrichment refreshes episodes and artwork.
 var syncCmd = &cobra.Command{
 	Use:   "sync",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Derive seasons and republish every TheTVDB link",
+	Long: `Runs the nightly TheTVDB sync.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+Derives a season for each anime that has a thetvdbid and no link yet, then
+republishes every link so thetvdb-enrichment refreshes its episodes and
+artwork.
+
+Flags:
+  --derive-all    also re-derive anime that already have a link. Off by
+                  default: the linked ones cost thousands of TheTVDB calls to
+                  confirm seasons that have not changed, and a derivation that
+                  disagrees with a hand-made link would overwrite it. Use it
+                  after TheTVDB revises a series, or after a change to the
+                  matcher that should reach anime linked under the old rules.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		deriveAll, _ := cmd.Flags().GetBool("derive-all")
+
 		// start simple http healthcheck
 		go func() {
 			conf := config.LoadConfigOrPanic()
@@ -33,20 +43,12 @@ to quickly create a Cobra application.`,
 			http.ListenAndServe(fmt.Sprintf(":%d", conf.AppConfig.Port), nil)
 		}()
 
-		return sync.Sync()
+		return sync.Sync(sync.Options{DeriveAll: deriveAll})
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(syncCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// serveCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// serveCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	syncCmd.Flags().Bool("derive-all", false, "re-derive anime that already have a link, not just the unlinked ones")
 }
