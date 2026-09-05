@@ -165,9 +165,6 @@ func (r *Runner) Run(ctx context.Context, opts Options, log func(string, ...inte
 				}
 			}
 
-			// Episodes first: agreement on air days is evidence, while a start
-			// date landing on a season boundary is a coincidence that usually
-			// holds and sometimes does not.
 			aired, err := r.episodeDays(ctx, row.ID)
 			if err != nil {
 				log("episode read failed anime=%s err=%v", row.ID, err)
@@ -175,12 +172,7 @@ func (r *Runner) Run(ctx context.Context, opts Options, log func(string, ...inte
 				continue
 			}
 
-			season, matched := MatchByEpisodes(aired, found.days, opts.RequiredRatio)
-			how := "episodes"
-			if !matched {
-				season, matched = MatchByExactStart(start, found.windows)
-				how = "exact-start"
-			}
+			season, how, matched := MatchSeason(aired, found.days, found.windows, start, opts.RequiredRatio)
 			if !matched {
 				result.Skipped++
 				continue

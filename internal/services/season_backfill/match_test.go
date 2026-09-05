@@ -150,6 +150,63 @@ func TestMatchByExactStartRequiresExactness(t *testing.T) {
 	}
 }
 
+// TheTVDB series 294002 in the shape that matters: the Ple Ple Pleiades shorts
+// air alongside the episodes they accompany, so season 0 carries every one of
+// season 2's air days.
+func overlord() []thetvdb_api.EpisodeBaseRecord {
+	return []thetvdb_api.EpisodeBaseRecord{
+		ep(2, "2018-01-09"), ep(2, "2018-01-16"), ep(2, "2018-01-23"),
+		ep(0, "2018-01-09"), ep(0, "2018-01-16"), ep(0, "2018-01-23"),
+		// Season 0 also holds extras from years the show was off air, which is
+		// why its first day is nowhere near season 2's.
+		ep(0, "2015-07-07"),
+	}
+}
+
+func TestMatchSeasonPrefersEpisodes(t *testing.T) {
+	season, how, ok := MatchSeason(days(t, "2009-05-22", "2009-06-19", "2009-06-26"),
+		SeasonAirDays(haruhi()), SeasonWindows(haruhi()), days(t, "2009-05-22")[0], DefaultRequiredRatio)
+
+	if !ok || season != 2 || how != "episodes" {
+		t.Errorf("got season %d via %q ok=%v, want season 2 via episodes", season, how, ok)
+	}
+}
+
+func TestMatchSeasonFallsBackOnlyWithoutEpisodes(t *testing.T) {
+	airDays, windows := SeasonAirDays(haruhi()), SeasonWindows(haruhi())
+
+	// No episodes of our own: the start date is all there is, and it is allowed
+	// to decide.
+	season, how, ok := MatchSeason(nil, airDays, windows, days(t, "2009-05-22")[0], DefaultRequiredRatio)
+	if !ok || season != 2 || how != "exact-start" {
+		t.Errorf("got season %d via %q ok=%v, want season 2 via exact-start", season, how, ok)
+	}
+}
+
+// The regression this whole change exists for. An anime whose episodes tie
+// across two seasons must be refused, not handed to the start-date rule --
+// which would answer confidently, because only one season begins on that day.
+func TestMatchSeasonRefusesWhenEpisodesAreAmbiguous(t *testing.T) {
+	airDays, windows := SeasonAirDays(overlord()), SeasonWindows(overlord())
+	ours := days(t, "2018-01-09", "2018-01-16", "2018-01-23")
+	start := ours[0]
+
+	// The old order: the tie is refused, and then exact-start supplies the very
+	// answer the tie said we could not have.
+	if _, ok := MatchByEpisodes(ours, airDays, DefaultRequiredRatio); ok {
+		t.Fatal("episodes matched a tie; the rest of this test assumes a refusal")
+	}
+	if season, ok := MatchByExactStart(start, windows); !ok || season != 2 {
+		t.Fatalf("exact-start got season %d ok=%v; the regression needs it to answer 2", season, ok)
+	}
+
+	// The gate: holding episodes at all means the start date does not get to
+	// speak.
+	if season, how, ok := MatchSeason(ours, airDays, windows, start, DefaultRequiredRatio); ok {
+		t.Errorf("matched season %d via %q; want a refusal", season, how)
+	}
+}
+
 func TestParseStartDateHandlesEveryShapeTheColumnHolds(t *testing.T) {
 	for _, in := range []string{"2006-04-03", "2006-04-03T04:00:00Z", "2006-04-03 04:00:00+00"} {
 		got, ok := ParseStartDate(in)
