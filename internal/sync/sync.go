@@ -22,7 +22,20 @@ import (
 // job has all night; the API does not have all night for us.
 const syncDeriveDelayMs = 200
 
-func Sync() error {
+// Options changes what a run does. The zero value is the nightly run.
+type Options struct {
+	// DeriveAll re-derives every anime that has a thetvdbid, instead of only
+	// those without a link yet.
+	//
+	// Off nightly, because the linked ones cost thousands of series fetches to
+	// confirm seasons that have not changed, and because a derivation that
+	// disagrees with a hand-made link would overwrite it. On when TheTVDB has
+	// revised its seasons, or when a change to the matcher should be applied to
+	// anime that were linked under the old rules.
+	DeriveAll bool
+}
+
+func Sync(opts Options) error {
 	cfg := config.LoadConfigOrPanic()
 
 	ctx := context.Background()
@@ -48,10 +61,11 @@ func Sync() error {
 	// same run, so thetvdb-enrichment pulls that season's episodes and artwork
 	// tonight rather than tomorrow night.
 	//
-	// Only the unlinked ones. After the first full pass the remaining work is
-	// new shows, and re-deriving every linked anime nightly would spend
-	// thousands of TheTVDB calls confirming what it already knows. A full
-	// re-derive is `backfill-seasons` without --only-unlinked.
+	// Only the unlinked ones unless asked otherwise. After the first full pass
+	// the remaining work is new shows, and re-deriving every linked anime
+	// nightly would spend thousands of TheTVDB calls confirming what it already
+	// knows. `sync --derive-all` does the full pass, as does `backfill-seasons`
+	// without --only-unlinked.
 	//
 	// A failure here does not abort the run. Deriving is an improvement to the
 	// catalogue; republishing existing links is the job this cron was created
@@ -63,7 +77,7 @@ func Sync() error {
 		API:   thetvdb_api.NewTheTVDBApi(cfg.TheTVDBConfig, &http.Client{}),
 	}
 	derived, err := runner.Run(ctx, season_backfill.Options{
-		OnlyUnlinked: true,
+		OnlyUnlinked: !opts.DeriveAll,
 		DelayMs:      syncDeriveDelayMs,
 	}, func(format string, args ...interface{}) {
 		log.Info(fmt.Sprintf(format, args...))
@@ -72,6 +86,7 @@ func Sync() error {
 		log.Error("season derivation failed, continuing with the sync", zap.Error(err))
 	} else {
 		log.Info("season derivation finished",
+			zap.Bool("deriveAll", opts.DeriveAll),
 			zap.Int("processed", derived.Processed),
 			zap.Int("linked", derived.Linked),
 			zap.Int("skipped", derived.Skipped),
