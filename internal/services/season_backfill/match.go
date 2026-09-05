@@ -192,7 +192,52 @@ func MatchByEpisodes(ourAired []time.Time, seasonDays map[int]map[string]bool, r
 	return bestSeason, true
 }
 
+// MatchSeason applies the two rules in order and reports which one decided.
+//
+// The order matters and so does the gate between them. Episode agreement is
+// evidence; a start date landing on a season boundary is a coincidence that
+// usually holds and sometimes does not. So the start-date rule runs only for
+// anime whose episodes we do not hold -- which is what it was always
+// documented to be for, and what this makes true.
+//
+// The gate is the part worth keeping. When we do hold episodes and
+// MatchByEpisodes still declined, it declined for a reason, and the most
+// common reason is two seasons explaining our episodes equally well. Falling
+// through then lets a rule that compares only the first day of each season
+// overturn one that compared every day: it finds exactly one season beginning
+// on our start day and answers confidently where the episodes said "cannot
+// tell".
+//
+// Overlord is the case that found this. Its season 0 carries all 13 of season
+// 2's air days, because the Ple Ple Pleiades shorts air alongside the episodes
+// they accompany. The tie was refused correctly -- and then the start-date rule
+// handed the shorts season 2, the season of the show they are extras for. The
+// same shape put a Re:ZERO shorts entry in season 3.
+func MatchSeason(
+	aired []time.Time,
+	seasonDays map[int]map[string]bool,
+	windows []SeasonWindow,
+	start time.Time,
+	requiredRatio float64,
+) (season int, how string, ok bool) {
+	if season, ok := MatchByEpisodes(aired, seasonDays, requiredRatio); ok {
+		return season, "episodes", true
+	}
+
+	if len(aired) > 0 {
+		return 0, "", false
+	}
+
+	if season, ok := MatchByExactStart(start, windows); ok {
+		return season, "exact-start", true
+	}
+
+	return 0, "", false
+}
+
 // MatchByExactStart is the fallback for anime whose episodes we do not hold.
+// MatchSeason is what enforces that -- calling this for an anime whose episodes
+// we do hold lets one day overrule every day.
 //
 // Exact equality, not proximity: the anime's first day must be the day a season
 // began, and exactly one season must begin on it. A "nearest season within N
